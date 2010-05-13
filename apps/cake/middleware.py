@@ -23,6 +23,8 @@ class CakeCookieMiddleware(object):
         Look up the AMOv3 session id in the table and login the user if it's
         valid.
         """
+        if request.user.is_authenticated():
+           return
 
         id = request.COOKIES.get('AMOv3')
 
@@ -31,18 +33,6 @@ class CakeCookieMiddleware(object):
                 session = Session.objects.get(pk=id)
                 user = auth.authenticate(session=session)
                 if user is not None:
-                    SESSION_KEY = '_auth_user_id'
-                    BACKEND_SESSION_KEY = '_auth_user_backend'
-                    if SESSION_KEY in request.session:
-                        if request.session[SESSION_KEY] != user.id:
-                            # To avoid reusing another user's session, create a new, empty
-                            # session if the existing session corresponds to a different
-                            # authenticated user.
-                            request.session.flush()
-                    else:
-                        request.session.cycle_key()
-                    request.session[SESSION_KEY] = user.id
-                    request.session[BACKEND_SESSION_KEY] = user.backend
-                    request.user = user
+                    auth.login(request, user)
             except Session.DoesNotExist:
                 return
